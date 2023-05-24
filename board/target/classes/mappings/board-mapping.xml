@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="BoardDAO">
+ 	<insert id="insertBoard" parameterType="board">
+ 	
+ 		<!-- board_seq 라는 시퀀스 생성 후 사용 가능 -->
+<!--  		<selectKey keyProperty="seq" resultType="int"> -->
+<!--  			select board_seq.nextval as seq from dual		 -->
+<!--  		</selectKey> -->
+<!--  		insert into board (seq,title,writer,content) -->
+<!--  		values (#{seq},#{title},#{writer},#{content}) -->
+	 	<![CDATA[
+	 		insert into board (seq,title,writer,content)
+	 		values ((select nvl(max(seq),0)+1 from board),#{title},#{writer},#{content})
+	 	]]>
+ 	</insert>
+
+ 	
+ 	<select id="getBoard" resultType="board">
+ 		<![CDATA[
+	 		select * 
+	 		from board 
+	 		where seq=#{seq}
+	 	]]> 
+ 	</select>
+ 	
+ 	<select id="boardCount" resultType="int">
+ 		<if test="searchKeyword == null">
+ 			select count(*) from board
+ 		</if>
+ 		<if test="searchKeyword != null">
+ 			<if test="searchCondition == 'title'">
+ 				select count(*) from board where title like '%'||#{searchKeyword}||'%'
+ 			</if>
+ 			
+ 			<if test="searchCondition == 'content'">
+ 				select count(*) from board where title like '%'||#{searchKeyword}||'%'
+ 			</if>
+ 		</if>
+ 	</select>
+ 	
+ 	<select id="pagingBoardList" resultMap="boardResult">
+		SELECT *
+		FROM   (SELECT ROWNUM AS rnum, B.*
+		        FROM   (SELECT seq,
+		                       title,
+		                       writer,
+		                       content,
+		                       TO_CHAR(regdate,'yyyy-mm-dd hh:mi:ss') AS regdate,
+		                       cnt,
+		                       writer AS board_writer
+		                FROM   board
+		                WHERE
+		                <if test="searchCondition == 'title'">
+				 			TITLE LIKE '%'||#{searchKeyword}||'%'
+				 		</if> 
+				 		<if test="searchCondition == 'content'"> 
+				 			CONTENT LIKE '%'||#{searchKeyword}||'%'
+				 		</if> 
+		                ORDER BY seq DESC) B)
+		WHERE  rnum BETWEEN #{page}*10-9 AND #{page}*10
+ 	</select>
+ 	
+ 	
+ 	<select id="getBoardList" resultMap="boardResult">
+ 		SELECT *  
+ 		FROM BOARD 
+ 		WHERE 1=1 
+ 		<if test="searchCondition == 'title'">
+ 			AND TITLE LIKE '%'||#{searchKeyword}||'%'
+ 		</if> 
+ 		<if test="searchCondition == 'content'"> 
+ 			AND CONTENT LIKE '%'||#{searchKeyword}||'%'
+ 		</if>
+ 		ORDER BY SEQ DESC
+ 	</select>
+ 	
+ 	 <update id="cntPlus" parameterType="board">
+ 		<![CDATA[
+	 		update board set 
+	 			cnt=(select cnt+1 from board where seq=#{seq}) 
+	 		where seq=#{seq}
+	 	]]>
+ 	</update>
+ 	
+ 	<update id="updateBoard" parameterType="board">
+ 		<![CDATA[
+	 		update board set 
+	 			title=#{title},
+	 			content=#{content}
+ 			where seq=#{seq}
+	 	]]>
+ 	</update>
+ 	
+ 	<delete id="deleteBoard" parameterType="int">
+ 		<![CDATA[
+	 		delete board 
+	 		where seq=#{seq}
+	 	]]>
+ 	</delete>
+ 	
+ 	<resultMap type="board" id="boardResult">
+ 		<id property="seq" column="SEQ" />
+ 		<result property="title" column="TITLE"/>
+ 		<result property="writer" column="WRITER"/>
+ 		<result property="content" column="CONTENT"/>
+ 		<result property="regDate" column="REGDATE"/>
+ 		<result property="cnt" column="CNT"/>
+ 	</resultMap>
+</mapper>
